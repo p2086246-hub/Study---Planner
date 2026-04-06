@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Profile — SmartStudy AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-user-cog"></i> My Profile</h1>
+  <p>Set your study preferences to power the AI timetable generator.</p>
+</div>
+<div class="two-col-layout">
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-id-card"></i> Personal Details</h3></div>
+    <form method="POST" class="profile-form">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="full_name" class="form-control" value="{{ profile.full_name or '' }}" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Age</label>
+          <input type="number" name="age" class="form-control" value="{{ profile.age or 20 }}" min="15" max="35">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Education Level</label>
+          <select name="education_level" class="form-control">
+            {% for lvl in ['B.Tech Sem 1','B.Tech Sem 2','B.Tech Sem 3','B.Tech Sem 4','B.Tech Sem 5','B.Tech Sem 6','B.Tech Sem 7','B.Tech Sem 8','M.Tech','MBA','Other'] %}
+            <option {% if profile.education_level == lvl %}selected{% endif %}>{{ lvl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Study Goal / Exam Target</label>
+        <input type="text" name="study_goal" class="form-control" value="{{ profile.study_goal or '' }}" placeholder="e.g. GATE 2025, University Exams">
+      </div>
+
+      <div class="divider"></div>
+      <h4 class="section-mini-title">Study Schedule Settings</h4>
+
+      <div class="form-group required-field">
+        <label class="form-label">Daily Free Study Hours <span class="required-star">* Required</span></label>
+        <input type="number" name="daily_free_hours" class="form-control" value="{{ profile.daily_free_hours or '' }}"
+               min="1" max="12" step="0.5" placeholder="e.g. 4" required>
+        <div class="form-hint">This determines how many slots appear in your timetable each day.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Study Start Time</label>
+          <input type="time" name="study_start_time" class="form-control" value="{{ profile.study_start_time or '18:00' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Study End Time</label>
+          <input type="time" name="study_end_time" class="form-control" value="{{ profile.study_end_time or '22:00' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Concentration Level: <strong id="concLabel">{{ profile.concentration_level or 7 }}</strong>/10</label>
+        <input type="range" name="concentration_level" id="concRange" min="1" max="10"
+               value="{{ profile.concentration_level or 7 }}" class="range-input"
+               oninput="document.getElementById('concLabel').textContent=this.value">
+        <div class="range-labels"><span>Low (1)</span><span>High (10)</span></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Profile</button>
+    </form>
+  </div>
+
+  <div>
+    <div class="card info-card">
+      <div class="card-header"><h3><i class="fas fa-circle-info"></i> Account Info</h3></div>
+      <div class="info-list">
+        <div class="info-row"><span>Username</span><strong>{{ user.username }}</strong></div>
+        <div class="info-row"><span>Email</span><strong>{{ user.email }}</strong></div>
+        <div class="info-row"><span>Member since</span><strong>{{ user.created_at.strftime('%b %d, %Y') }}</strong></div>
+        <div class="info-row"><span>Role</span><span class="badge badge-blue">{{ user.role }}</span></div>
+      </div>
+    </div>
+    <div class="card tip-card" style="margin-top:1rem;">
+      <h4>💡 Tips</h4>
+      <ul class="tip-list">
+        <li>Set <strong>Daily Free Hours</strong> before generating a timetable — it is required.</li>
+        <li>Start and End Times define when your 1-hour slots begin.</li>
+        <li>Higher concentration → fewer predicted hours needed.</li>
+        <li>Add at least <strong>3 subjects</strong> before generating.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

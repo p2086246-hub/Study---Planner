@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SmartStudy AI{% endblock %}
+{% block content %}
+
+<!-- MOTIVATION -->
+<div class="motivation-banner">
+  <span class="motivation-icon">💡</span>
+  <span class="motivation-text">{{ motivation }}</span>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon orange"><i class="fas fa-fire"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ streak }}</div><div class="stat-label">Day Streak</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue"><i class="fas fa-book-open"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ subjects|length }}</div><div class="stat-label">Subjects</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ week_pct }}%</div><div class="stat-label">Week Progress ({{ done_w }}/{{ total_w }})</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"><i class="fas fa-brain"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ model_r2 }}</div><div class="stat-label">ML Model R²</div></div>
+  </div>
+</div>
+
+<!-- AI SUGGESTIONS -->
+{% if ai_suggestions %}
+<div class="card" style="margin-bottom:1.25rem;">
+  <div class="card-header"><h3><i class="fas fa-robot"></i> AI Suggestions</h3></div>
+  <div class="suggestions-list">
+    {% for s in ai_suggestions %}
+    <div class="suggestion-item suggestion-{{ s.type }}">
+      <span class="suggestion-icon">{{ s.icon }}</span>
+      <span>{{ s.text|safe }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- BADGES -->
+{% if badges %}
+<div class="card" style="margin-bottom:1.25rem;">
+  <div class="card-header"><h3><i class="fas fa-trophy"></i> Achievements</h3></div>
+  <div class="badges-row">
+    {% for b in badges %}
+    <div class="badge-card badge-card-{{ b.color }}">
+      <div class="badge-icon">{{ b.icon }}</div>
+      <div class="badge-name">{{ b.name }}</div>
+      <div class="badge-desc">{{ b.desc }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- EXAM COUNTDOWN -->
+{% if countdowns %}
+<div class="card" style="margin-bottom:1.25rem;">
+  <div class="card-header"><h3><i class="fas fa-clock"></i> Exam Countdown</h3></div>
+  <div class="countdown-row">
+    {% for c in countdowns %}
+    <div class="countdown-card {{ 'countdown-urgent' if c.urgent else '' }}">
+      <div class="countdown-subject" style="color:{{ c.color }};">{{ c.name }}</div>
+      <div class="countdown-days">{{ c.days_left }}</div>
+      <div class="countdown-label">days left</div>
+      {% if c.days_left <= 3 %}<div class="countdown-tag tag-red">🚨 Very Soon</div>
+      {% elif c.days_left <= 7 %}<div class="countdown-tag tag-orange">⚡ This Week</div>
+      {% elif c.days_left <= 14 %}<div class="countdown-tag tag-yellow">📅 2 Weeks</div>
+      {% else %}<div class="countdown-tag tag-green">✅ On Track</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- WEAK SUBJECTS -->
+{% if weak_subjects %}
+<div class="card" style="margin-bottom:1.25rem;">
+  <div class="card-header">
+    <h3><i class="fas fa-triangle-exclamation"></i> Weak Subjects — Needs Attention</h3>
+  </div>
+  <div class="weak-list">
+    {% for w in weak_subjects %}
+    <div class="weak-item">
+      <div class="weak-dot" style="background:{{ w.color }};"></div>
+      <div>
+        <div class="weak-name">{{ w.name }}</div>
+        <div class="weak-reason">{{ w.reason }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- MAIN GRID -->
+<div class="dashboard-grid">
+
+  <!-- TODAY'S SLOTS -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-calendar-day"></i> Today ({{ day_name }})</h3>
+    </div>
+    {% if today_slots %}
+    <div class="today-slots">
+      {% for slot in today_slots %}
+      <div class="slot-row {% if slot.completed %}slot-done{% endif %}{% if slot.is_backlog %} slot-backlog{% endif %}" id="slot-{{ slot.id }}">
+        <div class="slot-time">
+          {{ slot.time_slot }}
+          {% if slot.is_backlog %}<span class="backlog-tag">📋 Backlog</span>{% endif %}
+        </div>
+        <div class="slot-subject">
+          {% if slot.slot_type == 'Break' %}
+            <span class="slot-name" style="color:#6b7280;">☕ Break</span>
+            <span class="slot-badge slot-break">Break</span>
+          {% else %}
+            <span class="slot-name">{{ slot.subject_name }}</span>
+            <span class="slot-badge slot-{{ slot.slot_type|lower|replace(' ','-') }}"
+              {% if slot.slot_type=='Study' and color_map.get(slot.subject_name) %}
+                style="background:{{ color_map[slot.subject_name] }}22;color:{{ color_map[slot.subject_name] }};border:1px solid {{ color_map[slot.subject_name] }}44;"
+              {% endif %}>{{ slot.slot_type }}</span>
+          {% endif %}
+        </div>
+        {% if slot.slot_type != 'Break' %}
+        <button class="btn-check" onclick="markSlot({{ slot.id }}, this)">
+          <i class="fas fa-{% if slot.completed %}rotate-left{% else %}check{% endif %}"></i>
+        </button>
+        {% else %}
+        <div style="width:30px;"></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No timetable for today yet.</p>
+      <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm">Go to Planner</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- PRIORITY CHART -->
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Subject Priority</h3></div>
+    {% if subjects %}
+    <canvas id="priorityChart" height="260"></canvas>
+    {% else %}
+    <div class="empty-state"><p>Add subjects to see chart.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- DAILY GOALS -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-list-check"></i> Daily Goals</h3>
+      <span class="badge badge-blue">{{ today_goals|length }}/5</span>
+    </div>
+    {% if today_goals %}
+    <div class="goals-list" style="margin-bottom:.75rem;">
+      {% for g in today_goals %}
+      <div class="goal-row {% if g.completed %}goal-done{% endif %}" id="goal-{{ g.id }}">
+        <button class="goal-check" onclick="toggleGoal({{ g.id }}, this)">
+          <i class="fas fa-{% if g.completed %}circle-check{% else %}circle{% endif %}"></i>
+        </button>
+        <span class="goal-text">{{ g.text }}</span>
+        <form method="POST" action="{{ url_for('delete_goal', goal_id=g.id) }}" style="display:inline;">
+          <button type="submit" class="goal-del" title="Delete"><i class="fas fa-times"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if today_goals|length < 5 %}
+    <form method="POST" action="{{ url_for('add_goal') }}" style="display:flex;gap:.5rem;">
+      <input type="text" name="goal_text" class="form-control"
+             placeholder="Add a goal for today…" required style="flex:1;font-size:.82rem;padding:7px 10px;">
+      <button type="submit" class="btn btn-primary btn-sm">Add</button>
+    </form>
+    {% else %}
+    <p style="font-size:.78rem;color:var(--muted);">Maximum 5 goals per day reached.</p>
+    {% endif %}
+  </div>
+
+  <!-- SUBJECTS LIST -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-list-check"></i> Subjects</h3>
+      <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm">Manage</a>
+    </div>
+    {% if subjects %}
+    <div class="subject-list">
+      {% for s in subjects %}
+      <div class="subject-row">
+        <div style="display:flex;align-items:center;gap:.6rem;">
+          <div class="subj-dot" style="background:{{ s.color or '#4f46e5' }};"></div>
+          <div class="subject-info">
+            <span class="subject-name">{{ s.name }}</span>
+            <span class="subject-meta">Difficulty {{ s.difficulty }}/10 &bull; {{ s.days_left }}d left</span>
+          </div>
+        </div>
+        <div class="subject-stats">
+          <span class="badge badge-blue">{{ s.predicted_hours }}h/day</span>
+          <span class="badge badge-orange">P:{{ "%.2f"|format(s.priority_score) }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><p>No subjects yet. <a href="{{ url_for('planner') }}">Add now</a></p></div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if subjects %}
+<script>
+const labels = {{ subj_names }};
+const prio   = {{ subj_prio }};
+const clrs   = {{ subj_colors }};
+new Chart(document.getElementById('priorityChart'),{
+  type:'bar',
+  data:{labels,datasets:[{label:'Priority Score',data:prio,
+    backgroundColor:clrs.map(c=>c+'99'),borderColor:clrs,
+    borderWidth:2,borderRadius:8,borderSkipped:false}]},
+  options:{responsive:true,plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true}}}
+});
+</script>
+{% endif %}
+<script>
+function markSlot(id,btn){
+  fetch('/mark_slot/'+id,{method:'POST'}).then(r=>r.json()).then(d=>{
+    const row=document.getElementById('slot-'+id);
+    if(d.completed){row.classList.add('slot-done');btn.innerHTML='<i class="fas fa-rotate-left"></i>';}
+    else{row.classList.remove('slot-done');btn.innerHTML='<i class="fas fa-check"></i>';}
+  });
+}
+function toggleGoal(id,btn){
+  fetch('/goal/toggle/'+id,{method:'POST'}).then(r=>r.json()).then(d=>{
+    const row=document.getElementById('goal-'+id);
+    if(d.completed){row.classList.add('goal-done');btn.innerHTML='<i class="fas fa-circle-check"></i>';}
+    else{row.classList.remove('goal-done');btn.innerHTML='<i class="fas fa-circle"></i>';}
+  });
+}
+
+// Browser notification for upcoming exams
+const examAlerts = {{ exam_alerts }};
+if(examAlerts.length>0 && 'Notification' in window){
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){
+      examAlerts.forEach(e=>{
+        new Notification('📅 Exam Alert — SmartStudy AI',{
+          body:`${e.name} exam is in ${e.days} day(s)!`,
+          icon:'/static/favicon.ico'
+        });
+      });
+    }
+  });
+}
+</script>
+{% endblock %}

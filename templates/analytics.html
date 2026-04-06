@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Analytics — SmartStudy AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-chart-bar"></i> Analytics</h1>
+  <p>Visual insights into your study patterns, predicted hours, and completion progress.</p>
+</div>
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ overall_pct }}%</div><div class="stat-label">Week Completion ({{ done_slots }}/{{ total_slots }})</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"><i class="fas fa-brain"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ model_r2 }}</div><div class="stat-label">Linear Regression R²</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue"><i class="fas fa-book"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ subjects|length }}</div><div class="stat-label">Active Subjects</div></div>
+  </div>
+</div>
+<div class="analytics-grid">
+  <div class="card">
+    <div class="card-header"><h3>Weekly Slot Distribution</h3></div>
+    <canvas id="slotsChart" height="260"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Predicted Study Hours / Subject</h3></div>
+    <canvas id="hoursChart" height="260"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Completion: Allocated vs Done</h3></div>
+    <canvas id="doneChart" height="260"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Log Mock Test Score</h3>
+      <a href="{{ url_for('planner') }}" class="btn btn-ghost btn-sm">Manage Subjects</a>
+    </div>
+    {% if subjects %}
+    <form method="POST" action="{{ url_for('log_performance') }}">
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <select name="subject_id" class="form-control">
+          {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Score (%)</label>
+        <input type="number" name="score" class="form-control" min="0" max="100" placeholder="75" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" name="notes" class="form-control" placeholder="Optional">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Log Score</button>
+    </form>
+    {% else %}
+    <div class="empty-state"><p>Add subjects first.</p></div>
+    {% endif %}
+    {% if perf_logs %}
+    <hr style="margin:1rem 0;">
+    <h4 style="margin-bottom:.5rem;">Recent Logs</h4>
+    {% for log in perf_logs[-5:]|reverse %}
+    <div class="perf-log-row">
+      <span>{{ log.subject.name }}</span>
+      <span class="badge {% if log.score >= 75 %}badge-green{% elif log.score >= 50 %}badge-orange{% else %}badge-red{% endif %}">{{ log.score }}%</span>
+      <span class="muted">{{ log.log_date.strftime('%d %b') }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const labels = {{ chart_labels }};
+const alloc  = {{ chart_alloc }};
+const slots  = {{ chart_slots }};
+const done   = {{ chart_done }};
+const colors = ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+
+new Chart(document.getElementById('slotsChart'), {
+  type: 'bar',
+  data: { labels, datasets:[{label:'Weekly Slots', data:slots, backgroundColor:labels.map((_,i)=>colors[i%colors.length]), borderRadius:6}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+});
+new Chart(document.getElementById('hoursChart'), {
+  type: 'doughnut',
+  data: { labels, datasets:[{data:alloc, backgroundColor:labels.map((_,i)=>colors[i%colors.length]), borderWidth:0}]},
+  options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+});
+new Chart(document.getElementById('doneChart'), {
+  type: 'bar',
+  data: { labels, datasets:[
+    {label:'Allocated Slots', data:slots, backgroundColor:'#e0e7ff', borderRadius:6},
+    {label:'Done', data:done, backgroundColor:'#10b981', borderRadius:6}
+  ]},
+  options:{responsive:true,scales:{y:{beginAtZero:true}}}
+});
+</script>
+{% endblock %}

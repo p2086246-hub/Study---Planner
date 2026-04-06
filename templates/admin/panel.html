@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — SmartStudy AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-shield-halved"></i> Admin Panel</h1>
+  <p>Logged in as <strong>{{ current_user.username }}</strong> — full system overview.</p>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ users|length }}</div><div class="stat-label">Total Users</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-user-graduate"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ users|selectattr('role','eq','user')|list|length }}</div><div class="stat-label">Students</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon orange"><i class="fas fa-envelope"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ messages|length }}</div><div class="stat-label">Contact Messages</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"><i class="fas fa-brain"></i></div>
+    <div class="stat-body"><div class="stat-value">Active</div><div class="stat-label">ML Engine</div></div>
+  </div>
+</div>
+
+<!-- ALGORITHM INFO (admin only) -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header">
+    <h3><i class="fas fa-flask"></i> ML Algorithm Details</h3>
+    <span class="badge badge-purple">Admin Only</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+    <div>
+      <h4 style="color:var(--primary);margin-bottom:.5rem;">Priority Formula</h4>
+      <div style="background:#f1f5f9;border-radius:8px;padding:1rem;font-family:monospace;font-size:.9rem;color:#1e1b4b;">
+        Priority = (Difficulty × 0.6) + (1 / DaysLeft × 0.4)
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem;">Higher score = more slots allocated this week</p>
+    </div>
+    <div>
+      <h4 style="color:var(--primary);margin-bottom:.5rem;">Smart Hour Boost</h4>
+      <div style="background:#f1f5f9;border-radius:8px;padding:1rem;font-family:monospace;font-size:.9rem;color:#1e1b4b;">
+        if days_left &lt; 7 → boost +2h<br>
+        if days_left &lt; 14 → boost +1h
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem;">Applied when user enters &lt;4h free hours</p>
+    </div>
+    <div>
+      <h4 style="color:var(--primary);margin-bottom:.5rem;">Timetable Slots</h4>
+      <div style="background:#f1f5f9;border-radius:8px;padding:1rem;font-size:.82rem;line-height:1.8;color:#374151;">
+        • Proportional allocation across 7 days<br>
+        • 1 Revision slot = last slot every day<br>
+        • 1 Mock Test slot = Saturday second-last
+      </div>
+    </div>
+    <div>
+      <h4 style="color:var(--primary);margin-bottom:.5rem;">Linear Regression</h4>
+      <div style="background:#f1f5f9;border-radius:8px;padding:1rem;font-family:monospace;font-size:.9rem;color:#1e1b4b;">
+        β = (XᵀX)⁻¹ Xᵀy
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem;">Manual OLS on 600-sample synthetic data</p>
+    </div>
+  </div>
+</div>
+
+<!-- USERS TABLE -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header">
+    <h3><i class="fas fa-table-list"></i> Registered Users</h3>
+    <span class="badge badge-blue">{{ users|length }} total</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr><th>#</th><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Subjects</th><th>Slots</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="muted">{{ u.id }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;">{{ u.username[0]|upper }}</div>
+              <strong>{{ u.username }}</strong>
+            </div>
+          </td>
+          <td class="muted">{{ u.email }}</td>
+          <td><span class="badge {% if u.role=='admin' %}badge-red{% else %}badge-blue{% endif %}">{{ u.role }}</span></td>
+          <td class="muted">{{ u.created_at.strftime('%d %b %Y') }}</td>
+          <td><span class="badge badge-purple">{{ u.subjects|length }}</span></td>
+          <td><span class="badge badge-green">{{ u.timetables|length }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CONTACT MESSAGES -->
+<div class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-envelope-open-text"></i> User Contact Messages</h3>
+    <span class="badge badge-orange">{{ messages|length }} received</span>
+  </div>
+  {% if messages %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr><th>From</th><th>Email</th><th>Subject</th><th>Message</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for m in messages %}
+        <tr>
+          <td><strong>{{ m.name }}</strong></td>
+          <td class="muted">{{ m.email }}</td>
+          <td>{{ m.subject or '—' }}</td>
+          <td style="max-width:320px;white-space:normal;font-size:.82rem;color:#374151;">{{ m.message }}</td>
+          <td class="muted" style="white-space:nowrap;">{{ m.created_at.strftime('%d %b %Y %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:2rem;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:.5rem;">📭</div>
+    <p style="color:var(--muted);">No contact messages yet.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

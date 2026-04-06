@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}About Us — SmartStudy AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-circle-info"></i> About SmartStudy AI</h1>
+  <p>B.Tech 6th Semester Mini Project — AI/ML Based Smart Study Planner</p>
+</div>
+
+<div class="two-col-layout">
+  <div class="card">
+    <div class="card-header"><h3>Project Overview</h3></div>
+    <p style="line-height:1.8;color:#555;">SmartStudy AI is a full-stack web application that uses Machine Learning to help students plan their study schedule intelligently. Instead of manually deciding how many hours to spend on each subject, the system automatically predicts this using a Linear Regression model trained on key features.</p>
+
+    <div class="about-features">
+      <h4>Timetable Features</h4>
+      <ul>
+        <li>Full 7-day school-style timetable (MON–SUN)</li>
+        <li>1 Revision slot at the end of every day</li>
+        <li>1 Mock Test slot every Saturday</li>
+        <li>Smart hour boost when exams are within 14 days</li>
+        <li>Priority-weighted slot distribution</li>
+      </ul>
+
+      <h4>ML Module</h4>
+      <ul>
+        <li><strong>Algorithm:</strong> Linear Regression (Manual OLS)</li>
+        <li><strong>Features:</strong> Difficulty, Days Left, Concentration</li>
+        <li><strong>Training:</strong> 600-sample synthetic dataset</li>
+        <li><strong>Accuracy:</strong> R² score shown on Dashboard</li>
+      </ul>
+
+      <h4>Adaptive Logic</h4>
+      <ul>
+        <li>Exam within 7 days + low hours → auto-boost up to +2 hrs/day</li>
+        <li>Streak system resets if all sessions not completed</li>
+      </ul>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header"><h3>Tech Stack</h3></div>
+      <div class="tech-grid">
+        <div class="tech-item"><span class="tech-icon">🐍</span><span>Python / Flask</span></div>
+        <div class="tech-item"><span class="tech-icon">🗃️</span><span>SQLite + SQLAlchemy</span></div>
+        <div class="tech-item"><span class="tech-icon">🤖</span><span>NumPy (Linear Regression)</span></div>
+        <div class="tech-item"><span class="tech-icon">📊</span><span>Chart.js</span></div>
+        <div class="tech-item"><span class="tech-icon">🔐</span><span>Flask-Login + Werkzeug</span></div>
+        <div class="tech-item"><span class="tech-icon">🎨</span><span>HTML5 / CSS3 / JS</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header"><h3><i class="fas fa-code"></i> Developer</h3></div>
+      <div style="display:flex;align-items:center;gap:1rem;padding:.5rem 0;">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;flex-shrink:0;">P</div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">PIYUSH KHODRE</div>
+          <div style="font-size:.85rem;color:var(--muted);">Full Stack Developer &amp; ML Engineer</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:.2rem;">B.Tech 6th Semester — SmartStudy AI Project</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Database Schema</h3></div>
+      <ul class="schema-list">
+        <li><strong>users</strong> — id, username, email, password_hash, role</li>
+        <li><strong>profiles</strong> — full_name, age, education, goal, daily_free_hours, start_time, end_time, concentration</li>
+        <li><strong>subjects</strong> — name, difficulty, exam_date, days_left, priority_score, predicted_hours</li>
+        <li><strong>weekly_timetable</strong> — day_name, time_slot, subject_name, slot_type, completed</li>
+        <li><strong>streaks</strong> — date, all_completed, current_streak</li>
+        <li><strong>contact_messages</strong> — name, email, subject, message, created_at</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

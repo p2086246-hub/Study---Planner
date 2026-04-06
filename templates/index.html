@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}SmartStudy AI — Home{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="hero-badge">🤖 Powered by Linear Regression ML</div>
+  <h1 class="hero-title">Study Smarter,<br><span class="accent">Not Harder</span></h1>
+  <p class="hero-sub">An AI-driven study planner that predicts your optimal daily study hours, generates a complete 7-day school-style timetable, and adapts to your performance in real time.</p>
+  <div class="hero-cta">
+    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Get Started Free</a>
+    <a href="{{ url_for('login') }}" class="btn btn-ghost btn-lg" style="color:#fff;border-color:rgba(255,255,255,.4);">Login</a>
+  </div>
+</section>
+
+<section style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Everything you need to study smarter</h2>
+  <div class="features-grid">
+
+    <a href="{{ url_for('login') }}" class="feature-card-link">
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Dashboard</h3>
+        <p>See today's schedule, your streak, subject priorities, and weekly completion at a glance.</p>
+        <span class="feature-cta">Go to Dashboard →</span>
+      </div>
+    </a>
+
+    <a href="{{ url_for('login') }}" class="feature-card-link">
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <h3>Study Planner</h3>
+        <p>Add subjects with difficulty and exam date. Generate a full 7-day timetable with 1-hour slots instantly.</p>
+        <span class="feature-cta">Open Planner →</span>
+      </div>
+    </a>
+
+    <a href="{{ url_for('login') }}" class="feature-card-link">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>ML Prediction</h3>
+        <p>Linear Regression predicts exact study hours per subject based on difficulty, deadline, and your concentration level.</p>
+        <span class="feature-cta">See Predictions →</span>
+      </div>
+    </a>
+
+    <a href="{{ url_for('login') }}" class="feature-card-link">
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Analytics</h3>
+        <p>Visual charts for weekly distribution, predicted hours, completion progress and mock test scores.</p>
+        <span class="feature-cta">View Analytics →</span>
+      </div>
+    </a>
+
+    <a href="{{ url_for('login') }}" class="feature-card-link">
+      <div class="feature-card">
+        <div class="feature-icon">🔥</div>
+        <h3>Streak Tracker</h3>
+        <p>Build daily study habits. Complete all slots to keep your streak alive. 14-day heatmap included.</p>
+        <span class="feature-cta">Track Streak →</span>
+      </div>
+    </a>
+
+    <a href="{{ url_for('register') }}" class="feature-card-link">
+      <div class="feature-card" style="border-color:var(--primary);background:var(--primary-light);">
+        <div class="feature-icon">⚡</div>
+        <h3>Adaptive Scheduling</h3>
+        <p>Missed sessions? The system automatically increases that subject's slots by 15% next week.</p>
+        <span class="feature-cta">Create Free Account →</span>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<section class="how-it-works">
+  <h2 class="section-title">How it works — 4 simple steps</h2>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h3>Create Account</h3>
+      <p>Register free. Set daily free hours, study start and end time in Profile.</p>
+      <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm" style="margin-top:.75rem;display:inline-flex;">Register Now</a>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h3>Add Subjects</h3>
+      <p>Add at least 3 subjects with difficulty level and exam date. AI instantly predicts hours needed.</p>
+      <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm" style="margin-top:.75rem;display:inline-flex;">Add Subjects</a>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h3>Generate Timetable</h3>
+      <p>One click generates your full 7-day schedule with Revision slots and a weekly Mock Test.</p>
+      <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm" style="margin-top:.75rem;display:inline-flex;">Generate</a>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <h3>Track and Improve</h3>
+      <p>Mark sessions done, build your streak, log mock scores. AI adapts your next week's plan.</p>
+      <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm" style="margin-top:.75rem;display:inline-flex;">Track Progress</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

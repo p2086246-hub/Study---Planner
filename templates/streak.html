@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Streak Tracker — SmartStudy AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-fire"></i> Streak Tracker</h1>
+  <p>Complete all daily slots to maintain your streak. One missed day resets it.</p>
+</div>
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon orange"><i class="fas fa-fire"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ current_streak }}</div><div class="stat-label">Current Streak</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"><i class="fas fa-trophy"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ best_streak }}</div><div class="stat-label">Best Streak</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
+    <div class="stat-body"><div class="stat-value">{{ streaks|selectattr('all_completed')|list|length }}</div><div class="stat-label">Days Completed</div></div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header"><h3><i class="fas fa-fire-flame-curved"></i> 14-Day Heatmap</h3></div>
+  <div class="heatmap">
+    {% for cell in heatmap %}
+    <div class="heatmap-cell {% if cell.done %}heatmap-done{% else %}heatmap-miss{% endif %}" title="{{ cell.date }}">
+      <span class="heatmap-date">{{ cell.date[-5:] }}</span>
+      <span class="heatmap-icon">{% if cell.done %}✅{% else %}⬜{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><h3><i class="fas fa-list"></i> Streak Log</h3></div>
+  {% if streaks %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>All Completed</th><th>Streak at that point</th></tr></thead>
+      <tbody>
+        {% for s in streaks %}
+        <tr>
+          <td>{{ s.date.strftime('%d %b %Y (%A)') }}</td>
+          <td>{% if s.all_completed %}<span class="badge badge-green">Yes</span>{% else %}<span class="badge badge-red">No</span>{% endif %}</td>
+          <td><strong>{{ s.current_streak }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><p>No streak data yet. Complete timetable slots to start tracking!</p></div>
+  {% endif %}
+</div>
+{% endblock %}
