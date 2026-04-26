@@ -2,298 +2,482 @@
 {% block title %}Study Planner — SmartStudy AI{% endblock %}
 {% block content %}
 
-<div class="page-header">
-  <h1><i class="fas fa-calendar-week"></i> Study Planner</h1>
-  <p>Choose your planning mode, add subjects or topics, then generate your 7-day timetable.</p>
+<!-- ═══ PLANNER HERO BANNER ══════════════════════════════════════════════ -->
+<div class="pl-hero">
+  <div class="pl-hero-text">
+    <div class="pl-hero-eyebrow">
+      <span class="pl-hero-dot"></span> AI-Powered • 7-Day Smart Schedule
+    </div>
+    <h1 class="pl-hero-title">Study Planner</h1>
+    <p class="pl-hero-sub">Add subjects → set hours → AI generates your perfect weekly timetable instantly.</p>
+  </div>
+  <div class="pl-hero-pills">
+    <div class="pl-pill">
+      <div class="pl-pill-num">{{ subjects|length }}</div>
+      <div class="pl-pill-lbl">Subjects</div>
+    </div>
+    <div class="pl-pill-sep"></div>
+    <div class="pl-pill">
+      <div class="pl-pill-num">{{ slot_order|length if slot_order else 0 }}</div>
+      <div class="pl-pill-lbl">Slots</div>
+    </div>
+    <div class="pl-pill-sep"></div>
+    <div class="pl-pill">
+      <div class="pl-pill-num">{{ (free_hours or profile.daily_free_hours or 0)|int }}h</div>
+      <div class="pl-pill-lbl">Free/Day</div>
+    </div>
+  </div>
 </div>
 
-<!-- MODE SELECTOR -->
-<div class="mode-selector-card">
-  <div class="mode-title">Select Planning Mode</div>
-  <div class="mode-btns">
-    <form method="POST" action="{{ url_for('planner') }}" style="display:inline;">
+<!-- ═══ MODE SELECTOR ════════════════════════════════════════════════════ -->
+<div class="pl-mode-bar">
+  <span class="pl-mode-label"><i class="fas fa-sliders"></i> Mode</span>
+  <div class="pl-mode-tabs">
+    <form method="POST" action="{{ url_for('planner') }}" style="display:contents;">
       <input type="hidden" name="action" value="set_mode">
       <input type="hidden" name="mode" value="subject">
-      <button type="submit"
-        class="mode-btn {% if mode=='subject' %}mode-btn-active{% endif %}">
-        <i class="fas fa-book"></i> Subject-wise Planning
-        {% if mode=='subject' %}<span class="mode-active-dot"></span>{% endif %}
+      <button type="submit" class="pl-tab {% if mode=='subject' %}pl-tab-on{% endif %}">
+        <i class="fas fa-book-open"></i> Subject-wise
       </button>
     </form>
-    <form method="POST" action="{{ url_for('planner') }}" style="display:inline;">
+    <form method="POST" action="{{ url_for('planner') }}" style="display:contents;">
       <input type="hidden" name="action" value="set_mode">
       <input type="hidden" name="mode" value="topic">
-      <button type="submit"
-        class="mode-btn {% if mode=='topic' %}mode-btn-active{% endif %}">
-        <i class="fas fa-list-tree"></i> Topic-wise Planning
-        {% if mode=='topic' %}<span class="mode-active-dot"></span>{% endif %}
+      <button type="submit" class="pl-tab {% if mode=='topic' %}pl-tab-on{% endif %}">
+        <i class="fas fa-list-tree"></i> Topic-wise
       </button>
     </form>
   </div>
-  <div class="mode-desc">
+  <p class="pl-mode-hint">
     {% if mode=='subject' %}
-    <i class="fas fa-circle-info" style="color:var(--primary);"></i>
-    <strong>Subject-wise:</strong> Allocate time per subject. AI distributes slots based on priority, difficulty and exam date.
+    <i class="fas fa-circle-dot" style="color:#f59e0b;"></i>
+    AI distributes time by <strong>difficulty &amp; deadline priority</strong>
     {% else %}
-    <i class="fas fa-circle-info" style="color:var(--primary);"></i>
-    <strong>Topic-wise:</strong> Break subjects into topics. Timetable covers pending topics individually.
+    <i class="fas fa-circle-dot" style="color:#f59e0b;"></i>
+    Track individual topics — granular chapter-level planning
     {% endif %}
-  </div>
+  </p>
 </div>
 
-<div class="planner-top-grid">
+<!-- ═══ TOP 2-COL GRID ═══════════════════════════════════════════════════ -->
+<div class="pl-grid2">
 
-  <!-- ADD SUBJECT -->
-  <div class="card">
-    <div class="card-header"><h3><i class="fas fa-plus-circle"></i> Add Subject</h3></div>
-    <form method="POST" action="{{ url_for('planner', mode=mode) }}">
+  <!-- ── ADD SUBJECT ────────────────────────────────────── -->
+  <div class="pl-card">
+    <div class="pl-card-head pl-head-indigo">
+      <div class="pl-card-icon"><i class="fas fa-plus"></i></div>
+      <div>
+        <div class="pl-card-title">Add Subject</div>
+        <div class="pl-card-sub">AI predicts hours &amp; priority instantly</div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('planner', mode=mode) }}" class="pl-form">
       <input type="hidden" name="action" value="add_subject">
-      <div class="form-group">
-        <label class="form-label">Subject Name</label>
-        <input type="text" name="name" class="form-control" placeholder="e.g. Data Structures" required autocomplete="off">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Difficulty (1–10)</label>
-          <input type="number" name="difficulty" class="form-control" min="1" max="10" step="0.5" value="5" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Exam Date</label>
-          <input type="date" name="exam_date" class="form-control">
+
+      <div class="pl-field">
+        <label class="pl-label">Subject Name</label>
+        <div class="pl-input-ico">
+          <i class="fas fa-graduation-cap"></i>
+          <input type="text" name="name" class="pl-input"
+                 placeholder="e.g. Data Structures, Physics…" required autocomplete="off">
         </div>
       </div>
-      <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-plus"></i> Add Subject</button>
+
+      <div class="pl-row2">
+        <div class="pl-field">
+          <label class="pl-label">Difficulty <span class="pl-muted">(1–10)</span></label>
+          <input type="number" name="difficulty" id="diffNum" class="pl-input"
+                 min="1" max="10" step="0.5" value="5" required
+                 oninput="syncDiff(this.value)">
+          <div class="diff-track"><div class="diff-fill" id="diffFill"></div></div>
+          <div class="diff-row">
+            <span class="diff-easy">Easy</span>
+            <span class="diff-tag" id="diffTag">Medium</span>
+            <span class="diff-hard">Hard</span>
+          </div>
+        </div>
+        <div class="pl-field">
+          <label class="pl-label">Exam Date</label>
+          <div class="pl-input-ico">
+            <i class="fas fa-calendar-days"></i>
+            <input type="date" name="exam_date" class="pl-input">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="pl-btn pl-btn-indigo">
+        <i class="fas fa-plus-circle"></i> Add Subject
+      </button>
     </form>
   </div>
 
-  <!-- GENERATE -->
-  <div class="card">
-    <div class="card-header"><h3><i class="fas fa-wand-magic-sparkles"></i> Generate 7-Day Timetable</h3></div>
-    {% if mode=='topic' and subjects|length < 1 %}
-    <div class="alert-inline alert-warning" style="margin-bottom:.75rem;">
-      <i class="fas fa-triangle-exclamation"></i> Add at least 1 subject and 3 topics first.
+  <!-- ── GENERATE TIMETABLE ─────────────────────────────── -->
+  <div class="pl-card">
+    <div class="pl-card-head pl-head-amber">
+      <div class="pl-card-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+      <div>
+        <div class="pl-card-title">Generate 7-Day Timetable</div>
+        <div class="pl-card-sub">One click → full AI-powered week plan</div>
+      </div>
     </div>
-    {% elif mode=='subject' and subjects|length < 3 %}
-    <div class="alert-inline alert-info" style="margin-bottom:.75rem;">
-      <i class="fas fa-circle-info"></i> Add at least <strong>3 subjects</strong>. You have {{ subjects|length }} so far.
+
+    {% if mode=='subject' and subjects|length < 3 %}
+    <div class="pl-notice pl-notice-info">
+      <i class="fas fa-circle-info"></i>
+      Need at least <strong>3 subjects</strong>. You have {{ subjects|length }} so far.
+    </div>
+    {% elif mode=='topic' and subjects|length < 1 %}
+    <div class="pl-notice pl-notice-warn">
+      <i class="fas fa-triangle-exclamation"></i>
+      Add a subject and 3+ pending topics first.
     </div>
     {% endif %}
-    <form method="POST" action="{{ url_for('planner', mode=mode) }}">
+
+    <form method="POST" action="{{ url_for('planner', mode=mode) }}" class="pl-form">
       <input type="hidden" name="action" value="generate">
-      <div class="form-group">
-        <label class="form-label">Daily Free Study Hours <span style="color:red">*</span></label>
-        <input type="number" name="free_hours" class="form-control" min="1" max="8" step="0.5"
-               value="{{ free_hours or '' }}" placeholder="e.g. 4" required>
-        <div class="form-hint">⚡ Max 8h/day. Breaks auto-added. Hours boosted if exam is near.</div>
+
+      <div class="pl-field">
+        <label class="pl-label">
+          Daily Free Hours <span class="pl-required">*</span>
+          <span class="pl-hint-chip">Revision included in total</span>
+        </label>
+        <!-- Visual hour picker -->
+        <div class="hrs-picker" id="hrsPicker">
+          {% for h in [1,2,3,4,5,6,7,8] %}
+          <button type="button"
+                  class="hrs-btn {% if (free_hours or profile.daily_free_hours or 4)|int == h %}hrs-btn-on{% endif %}"
+                  onclick="pickHours({{ h }}, this)">{{ h }}h</button>
+          {% endfor %}
+          <input type="hidden" name="free_hours" id="freeHrsHidden"
+                 value="{{ (free_hours or profile.daily_free_hours or 4)|int }}">
+        </div>
+        <!-- Live breakdown -->
+        <div class="hrs-breakdown" id="hrsBreakdown"></div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Start Time <span style="color:red">*</span></label>
-          <input type="time" name="start_time" class="form-control"
+
+      <div class="pl-row2">
+        <div class="pl-field">
+          <label class="pl-label">
+            <i class="fas fa-sun" style="color:#f59e0b;font-size:.7rem;"></i> Start Time
+          </label>
+          <input type="time" name="start_time" class="pl-input"
                  value="{{ profile.study_start_time or '18:00' }}" required>
         </div>
-        <div class="form-group">
-          <label class="form-label">End Time</label>
-          <input type="time" name="end_time" class="form-control"
+        <div class="pl-field">
+          <label class="pl-label">
+            <i class="fas fa-moon" style="color:#8b5cf6;font-size:.7rem;"></i> End Time
+          </label>
+          <input type="time" name="end_time" class="pl-input"
                  value="{{ profile.study_end_time or '22:00' }}">
         </div>
       </div>
-      <button type="submit" class="btn btn-primary btn-full"
+
+      {% set urgent = subjects|selectattr('days_left','defined')|selectattr('days_left','lt',8)|list %}
+      {% if urgent %}
+      <div class="pl-notice pl-notice-boost">
+        <i class="fas fa-bolt"></i>
+        <strong>Smart Boost Active!</strong>
+        {{ urgent[0].name }} exam in {{ urgent[0].days_left }}d — hours auto-boosted.
+      </div>
+      {% endif %}
+
+      <button type="submit" class="pl-btn pl-btn-amber"
         {% if mode=='subject' and subjects|length < 3 %}disabled{% endif %}>
-        <i class="fas fa-calendar-week"></i> Generate ({{ mode|title }}-wise)
+        <i class="fas fa-calendar-week"></i>
+        Generate {{ mode|capitalize }}-wise Timetable
       </button>
     </form>
   </div>
 </div>
 
-<!-- SUBJECTS TABLE -->
+<!-- ═══ SUBJECTS CARDS GRID ══════════════════════════════════════════════ -->
 {% if subjects %}
-<div class="card" style="margin-bottom:1.5rem;">
-  <div class="card-header">
-    <h3><i class="fas fa-list-check"></i> Subjects ({{ subjects|length }})</h3>
+<div class="pl-card pl-card-full">
+  <div class="pl-section-head">
+    <div class="pl-card-head pl-head-teal" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">
+      <div class="pl-card-icon"><i class="fas fa-list-check"></i></div>
+      <div>
+        <div class="pl-card-title">
+          Subjects
+          <span class="pl-count-badge">{{ subjects|length }}</span>
+        </div>
+        <div class="pl-card-sub">Priority scores &amp; AI-predicted hours per day</div>
+      </div>
+    </div>
   </div>
-  <div class="table-responsive">
-    <table class="data-table">
-      <thead>
-        <tr><th>Subject</th><th>Difficulty</th><th>Exam Date</th><th>Days Left</th><th>Priority</th><th>AI Hrs/Day</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for s in subjects %}
-        <tr>
-          <td>
-            <div style="display:flex;align-items:center;gap:.5rem;">
-              <div class="subj-dot" style="background:{{ s.color or '#4f46e5' }};"></div>
-              <strong>{{ s.name }}</strong>
-            </div>
-          </td>
-          <td>
-            <div style="display:flex;align-items:center;gap:6px;">
-              {{ s.difficulty }}/10
-              <div style="width:55px;height:5px;background:#e2e8f0;border-radius:3px;">
-                <div style="width:{{ (s.difficulty/10*100)|int }}%;height:5px;background:{{ s.color or '#f59e0b' }};border-radius:3px;"></div>
-              </div>
-            </div>
-          </td>
-          <td>{{ s.exam_date.strftime('%d %b %Y') if s.exam_date else '—' }}</td>
-          <td>
-            {% if s.days_left < 7 %}<span class="badge badge-red">{{ s.days_left }}d 🚨</span>
-            {% elif s.days_left < 14 %}<span class="badge badge-orange">{{ s.days_left }}d</span>
-            {% else %}<span class="badge badge-green">{{ s.days_left }}d</span>{% endif %}
-          </td>
-          <td><strong>{{ "%.3f"|format(s.priority_score) }}</strong></td>
-          <td><span class="badge" style="background:{{ s.color or '#4f46e5' }}22;color:{{ s.color or '#4f46e5' }};">{{ s.predicted_hours }}h</span></td>
-          <td>
-            <form method="POST" action="{{ url_for('planner', mode=mode) }}" style="display:inline;"
-                  onsubmit="return confirm('Delete {{ s.name }}?');">
-              <input type="hidden" name="action" value="delete_subject">
-              <input type="hidden" name="subject_id" value="{{ s.id }}">
-              <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  <div class="subj-cards">
+    {% for s in subjects %}
+    <div class="sj-card" style="--sc:{{ s.color or '#6366f1' }};">
+      <div class="sj-stripe"></div>
+      <div class="sj-body">
+        <!-- Row 1: name + delete -->
+        <div class="sj-top">
+          <span class="sj-name">{{ s.name }}</span>
+          <form method="POST" action="{{ url_for('planner', mode=mode) }}"
+                onsubmit="return confirm('Delete {{ s.name }}?')" style="margin:0;">
+            <input type="hidden" name="action" value="delete_subject">
+            <input type="hidden" name="subject_id" value="{{ s.id }}">
+            <button type="submit" class="sj-del" title="Delete"><i class="fas fa-xmark"></i></button>
+          </form>
+        </div>
+        <!-- Difficulty bar -->
+        <div class="sj-diff-lbl">Difficulty {{ s.difficulty }}/10</div>
+        <div class="sj-diff-track">
+          <div class="sj-diff-fill"
+               style="width:{{ (s.difficulty/10*100)|int }}%;"></div>
+        </div>
+        <!-- Chips row -->
+        <div class="sj-chips">
+          {% if s.exam_date %}
+          <span class="sj-chip" style="background:color-mix(in srgb,var(--sc) 12%,white);color:var(--sc);">
+            {{ s.exam_date.strftime('%d %b') }}
+          </span>
+          {% endif %}
+          {% if s.days_left < 7 %}
+            <span class="sj-chip sj-chip-red">🚨 {{ s.days_left }}d</span>
+          {% elif s.days_left < 14 %}
+            <span class="sj-chip sj-chip-orange">⚡ {{ s.days_left }}d</span>
+          {% else %}
+            <span class="sj-chip sj-chip-green">✓ {{ s.days_left }}d</span>
+          {% endif %}
+          <span class="sj-chip"
+                style="background:color-mix(in srgb,var(--sc) 12%,white);color:var(--sc);">
+            <i class="fas fa-clock" style="font-size:.6rem;"></i>
+            {{ s.predicted_hours }}h/day
+          </span>
+          <span class="sj-chip sj-chip-gray">
+            P: {{ "%.2f"|format(s.priority_score) }}
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
 </div>
 {% endif %}
 
-<!-- TOPIC-WISE SECTION -->
+<!-- ═══ TOPIC-WISE SECTION ════════════════════════════════════════════════ -->
 {% if mode == 'topic' %}
-<div class="card" style="margin-bottom:1.5rem;">
-  <div class="card-header">
-    <h3><i class="fas fa-list-tree"></i> Topics</h3>
-    <span class="badge badge-purple">Topic-wise Mode</span>
+<div class="pl-card pl-card-full">
+  <div class="pl-card-head" style="background:linear-gradient(135deg,#7c3aed18,#a855f710);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;">
+    <div class="pl-card-icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7);"><i class="fas fa-list-tree"></i></div>
+    <div>
+      <div class="pl-card-title">Topics <span class="pl-count-badge" style="background:#f5f3ff;color:#7c3aed;">Topic Mode</span></div>
+      <div class="pl-card-sub">Manage individual topics under each subject</div>
+    </div>
   </div>
 
-  <!-- Add topic form -->
   {% if subjects %}
-  <form method="POST" action="{{ url_for('planner', mode=mode) }}" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);">
+  <form method="POST" action="{{ url_for('planner', mode=mode) }}" class="topic-add-bar">
     <input type="hidden" name="action" value="add_topic">
-    <select name="subject_id" class="form-control" style="flex:1;min-width:140px;">
+    <select name="subject_id" class="pl-input" style="flex:1;min-width:120px;">
       {% for s in subjects %}
       <option value="{{ s.id }}">{{ s.name }}</option>
       {% endfor %}
     </select>
-    <input type="text" name="topic_name" class="form-control" placeholder="Topic name" required style="flex:2;min-width:160px;">
-    <input type="number" name="topic_difficulty" class="form-control" min="1" max="10" step="0.5" value="5" style="width:90px;" placeholder="Diff">
-    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Topic</button>
+    <input type="text" name="topic_name" class="pl-input" placeholder="Topic name…"
+           required style="flex:2;min-width:140px;">
+    <input type="number" name="topic_difficulty" class="pl-input"
+           min="1" max="10" step="0.5" value="5" placeholder="Diff" style="width:70px;">
+    <button type="submit" class="pl-btn pl-btn-indigo pl-btn-sm">
+      <i class="fas fa-plus"></i> Add
+    </button>
   </form>
   {% endif %}
 
-  <!-- Topics grouped by subject -->
   {% for s in subjects %}
-    {% if topics_by_subj[s.id] %}
-    <div style="margin-bottom:1rem;">
-      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
-        <div class="subj-dot" style="background:{{ s.color or '#4f46e5' }};"></div>
-        <strong style="font-size:.9rem;">{{ s.name }}</strong>
-        <span class="badge badge-blue">{{ topics_by_subj[s.id]|length }} topics</span>
-      </div>
-      <div class="table-responsive">
-        <table class="data-table" style="font-size:.82rem;">
-          <thead><tr><th>Topic</th><th>Difficulty</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            {% for t in topics_by_subj[s.id] %}
-            <tr>
-              <td>{{ t.name }}</td>
-              <td>{{ t.difficulty }}/10</td>
-              <td>
-                <form method="POST" action="{{ url_for('planner', mode=mode) }}" style="display:inline;">
-                  <input type="hidden" name="action" value="update_topic_status">
-                  <input type="hidden" name="topic_id" value="{{ t.id }}">
-                  <select name="status" class="form-control" style="padding:3px 7px;font-size:.78rem;width:110px;"
-                          onchange="this.form.submit()">
-                    {% for st in ['pending','completed','revise'] %}
-                    <option value="{{ st }}" {% if t.status==st %}selected{% endif %}>{{ st|capitalize }}</option>
-                    {% endfor %}
-                  </select>
-                </form>
-              </td>
-              <td>
-                <form method="POST" action="{{ url_for('planner', mode=mode) }}" style="display:inline;"
-                      onsubmit="return confirm('Delete topic?');">
-                  <input type="hidden" name="action" value="delete_topic">
-                  <input type="hidden" name="topic_id" value="{{ t.id }}">
-                  <button type="submit" class="btn btn-danger btn-sm" style="padding:3px 8px;"><i class="fas fa-trash"></i></button>
-                </form>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+  {% if topics_by_subj[s.id] %}
+  <div class="topic-group" style="--sc:{{ s.color or '#6366f1' }};">
+    <div class="tg-head">
+      <span class="tg-dot"></span>
+      <strong>{{ s.name }}</strong>
+      <span class="tg-cnt">{{ topics_by_subj[s.id]|length }}</span>
     </div>
-    {% endif %}
+    <div class="topic-flow">
+      {% for t in topics_by_subj[s.id] %}
+      <div class="t-chip
+           {% if t.status=='completed' %}t-done
+           {% elif t.status=='revise' %}t-revise
+           {% endif %}">
+        <span class="t-name">{{ t.name }}</span>
+        <span class="t-diff">{{ t.difficulty }}/10</span>
+        <form method="POST" action="{{ url_for('planner', mode=mode) }}" style="display:contents;">
+          <input type="hidden" name="action" value="update_topic_status">
+          <input type="hidden" name="topic_id" value="{{ t.id }}">
+          <select name="status" class="t-sel" onchange="this.form.submit()">
+            {% for st in ['pending','completed','revise'] %}
+            <option value="{{ st }}" {% if t.status==st %}selected{% endif %}>
+              {{ st|capitalize }}
+            </option>
+            {% endfor %}
+          </select>
+        </form>
+        <form method="POST" action="{{ url_for('planner', mode=mode) }}"
+              style="display:contents;" onsubmit="return confirm('Delete?')">
+          <input type="hidden" name="action" value="delete_topic">
+          <input type="hidden" name="topic_id" value="{{ t.id }}">
+          <button type="submit" class="t-del"><i class="fas fa-xmark"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
   {% endfor %}
+
   {% if not subjects %}
-  <div class="empty-state"><p>Add subjects first to manage topics.</p></div>
+  <div class="empty-state"><div class="empty-icon">📚</div><p>Add subjects first to manage topics.</p></div>
   {% endif %}
 </div>
 {% endif %}
 
-<!-- 7-DAY TIMETABLE -->
+<!-- ═══ 7-DAY TIMETABLE ══════════════════════════════════════════════════ -->
 {% if slot_order %}
-<div class="card timetable-card">
-  <div class="card-header">
-    <h3><i class="fas fa-calendar-week"></i> Weekly Timetable — w/c {{ week_start.strftime('%d %b %Y') }}</h3>
+<div class="pl-card pl-card-full tt-wrap">
+
+  <div class="tt-topbar">
+    <div style="display:flex;align-items:center;gap:.75rem;">
+      <div class="pl-card-icon pl-head-green-icon"><i class="fas fa-calendar-week"></i></div>
+      <div>
+        <div class="pl-card-title">7-Day Timetable</div>
+        <div class="pl-card-sub">Week of {{ week_start.strftime('%d %B %Y') }}</div>
+      </div>
+    </div>
     <div class="tt-legend">
-      <span class="slot-badge slot-study">Study</span>
-      <span class="slot-badge slot-revision">Revision</span>
-      <span class="slot-badge slot-break">☕ Break</span>
+      {% for s in subjects %}
+      <span class="tt-leg-item" style="--lc:{{ s.color }};">
+        <span class="tt-leg-dot"></span>{{ s.name }}
+      </span>
+      {% endfor %}
+      <span class="tt-leg-item" style="--lc:#10b981;"><span class="tt-leg-dot"></span>Revision</span>
+      <span class="tt-leg-item" style="--lc:#94a3b8;"><span class="tt-leg-dot"></span>Break</span>
     </div>
   </div>
-  <div class="table-responsive">
-    <table class="timetable-table">
+
+  <div class="tt-scroll">
+    <table class="tt-tbl">
       <thead>
         <tr>
-          <th class="time-col">Time Slot</th>
-          {% for day in days %}<th>{{ day }}</th>{% endfor %}
+          <th class="tt-th-time">⏰ Time</th>
+          {% set dmap = {'MON':'Mon','TUE':'Tue','WED':'Wed','THU':'Thu','FRI':'Fri','SAT':'Sat','SUN':'Sun'} %}
+          {% for day in days %}
+          <th class="tt-th {% if day in ['SAT','SUN'] %}tt-th-wknd{% endif %}">
+            {{ dmap[day] }}
+          </th>
+          {% endfor %}
         </tr>
       </thead>
       <tbody>
         {% for ts in slot_order %}
-        <tr>
-          <td class="time-col"><strong>{{ ts }}</strong></td>
+        {% set sample = grid[ts][days[0]] %}
+        {% set rtype  = sample.slot_type if sample else 'Study' %}
+        <tr class="tt-tr
+                   {% if rtype=='Break' %}tt-tr-break
+                   {% elif rtype=='Revision' %}tt-tr-rev{% endif %}">
+
+          <td class="tt-td-time">
+            {% if rtype=='Break' %}
+              <span class="tt-type-pill tt-pill-break">☕ Break</span>
+            {% elif rtype=='Revision' %}
+              <span class="tt-type-pill tt-pill-rev">📝 Revision</span>
+            {% else %}
+              <span class="tt-time-str">{{ ts }}</span>
+            {% endif %}
+          </td>
+
           {% for day in days %}
-            {% set cell = grid[ts][day] %}
-            <td class="tt-cell {{ 'tt-done' if cell and cell.completed else '' }} {{ 'tt-break-row' if cell and cell.slot_type=='Break' else '' }}">
-              {% if cell %}
-                {% if cell.slot_type == 'Break' %}
-                  <span class="slot-badge slot-break">☕ Break</span>
-                {% elif cell.slot_type == 'Revision' %}
-                  <span class="slot-badge slot-revision">📝 Revision</span>
-                {% else %}
-                  <span class="slot-badge slot-study"
-                    style="background:{{ color_map.get(cell.subject_name,'#4f46e5') }}22;
-                           color:{{ color_map.get(cell.subject_name,'#4f46e5') }};
-                           border:1px solid {{ color_map.get(cell.subject_name,'#4f46e5') }}55;">
-                    {{ cell.subject_name }}
-                  </span>
-                {% endif %}
+          {% set cell = grid[ts][day] %}
+          <td class="tt-td
+                     {% if day in ['SAT','SUN'] %}tt-td-wknd{% endif %}
+                     {% if cell and cell.completed %}tt-td-done{% endif %}">
+            {% if cell %}
+              {% if cell.slot_type=='Break' %}
+                <span class="tt-chip tt-chip-break">☕</span>
+              {% elif cell.slot_type=='Revision' %}
+                <span class="tt-chip tt-chip-rev">📝</span>
               {% else %}
-                <span class="tt-empty">—</span>
+                <span class="tt-chip tt-chip-study"
+                  style="--cc:{{ color_map.get(cell.subject_name,'#6366f1') }};">
+                  {{ cell.subject_name }}
+                  {% if cell.completed %}<i class="fas fa-check" style="font-size:.6rem;margin-left:2px;"></i>{% endif %}
+                </span>
               {% endif %}
-            </td>
+            {% else %}
+              <span class="tt-dash">—</span>
+            {% endif %}
+          </td>
           {% endfor %}
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
   <div class="tt-footer">
-    <i class="fas fa-circle-info"></i>
-    Each subject has a unique color. Breaks auto-added after every 2 slots.
-    Mark sessions complete from <a href="{{ url_for('dashboard') }}">Dashboard</a>.
+    <i class="fas fa-circle-info" style="color:#6366f1;"></i>
+    Mark sessions complete from your
+    <a href="{{ url_for('dashboard') }}" style="color:#6366f1;font-weight:700;">Dashboard</a>
+    to build your streak.
   </div>
 </div>
 
 {% elif subjects|length >= 3 %}
-<div class="card" style="text-align:center;padding:3rem;">
-  <div style="font-size:3rem;margin-bottom:.5rem;">📅</div>
-  <h3>No timetable yet</h3>
-  <p style="color:var(--muted);">Click <strong>Generate</strong> above to create this week's schedule.</p>
+<div class="pl-card pl-card-full" style="text-align:center;padding:4rem 2rem;">
+  <div style="font-size:3.5rem;margin-bottom:.75rem;">📅</div>
+  <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem;">No Timetable Yet</h3>
+  <p style="color:var(--muted);font-size:.875rem;">Set your hours above and click <strong>Generate</strong>.</p>
 </div>
 {% endif %}
+
+
+<!-- ═══ SCRIPTS ══════════════════════════════════════════════════════════ -->
+<script>
+/* ── Difficulty bar ─────────────────────────────────── */
+function syncDiff(v) {
+  v = parseFloat(v) || 5;
+  const pct = (v - 1) / 9 * 100;
+  const fill = document.getElementById('diffFill');
+  const tag  = document.getElementById('diffTag');
+  if (!fill || !tag) return;
+  fill.style.width    = pct + '%';
+  fill.style.background = v <= 3 ? '#10b981' : v <= 6 ? '#f59e0b' : '#ef4444';
+  const labs = ['','Very Easy','Easy','Easy','Medium','Medium','Hard','Hard','Very Hard','Very Hard','Expert'];
+  tag.textContent = labs[Math.round(v)] || '';
+  tag.style.color = v <= 3 ? '#059669' : v <= 6 ? '#b45309' : '#dc2626';
+}
+syncDiff(5);
+
+/* ── Hours picker ───────────────────────────────────── */
+function pickHours(h, btn) {
+  document.querySelectorAll('.hrs-btn').forEach(b => b.classList.remove('hrs-btn-on'));
+  btn.classList.add('hrs-btn-on');
+  document.getElementById('freeHrsHidden').value = h;
+  renderBreakdown(h);
+}
+
+function renderBreakdown(h) {
+  const total = Math.max(2, parseInt(h));
+  let study = total - 1;
+  if (study < 1) study = 1;
+  let brk  = Math.floor(study / 2);
+  let used = study + brk + 1;
+  while (used > total && study > 1) {
+    study--; brk = Math.floor(study / 2); used = study + brk + 1;
+  }
+  const el = document.getElementById('hrsBreakdown');
+  if (!el) return;
+  el.innerHTML =
+    `<span class="hbd hbd-study"><i class="fas fa-book-open"></i>${study}h Study</span>` +
+    (brk > 0 ? `<span class="hbd hbd-break"><i class="fas fa-mug-hot"></i>${brk}h Break</span>` : '') +
+    `<span class="hbd hbd-rev"><i class="fas fa-rotate-left"></i>1h Revision</span>` +
+    `<span class="hbd hbd-total"><i class="fas fa-sigma"></i>${used}h Total</span>`;
+}
+
+// Init on page load
+const initH = parseInt(document.getElementById('freeHrsHidden').value) || 4;
+renderBreakdown(initH);
+</script>
 
 {% endblock %}

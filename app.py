@@ -144,7 +144,7 @@ def _process_backlog(user_id):
         ).order_by(WeeklyTimetable.time_slot.desc()).first()
         new_slot = WeeklyTimetable(
             user_id=user_id, week_start=week_start,
-            day_name=today_name, time_slot="Backlog",
+            day_name=today_name, time_slot=f"Backlog {added + 1}",
             subject_name=sl.subject_name,
             slot_type='Study', is_backlog=True
         )
@@ -336,7 +336,11 @@ def _update_streak():
     countable = [s for s in slots if s.slot_type in ('Study','Revision')]
     all_done  = bool(countable) and all(s.completed for s in countable)
     rec  = Streak.query.filter_by(user_id=current_user.id, date=today).first()
-    prev = get_current_streak(current_user.id)
+    
+    yesterday = today - timedelta(days=1)
+    yesterday_rec = Streak.query.filter_by(user_id=current_user.id, date=yesterday).first()
+    prev = yesterday_rec.current_streak if yesterday_rec else 0
+
     if not rec:
         rec = Streak(user_id=current_user.id, date=today)
         db.session.add(rec)
@@ -522,16 +526,22 @@ def planner():
 
             today      = date.today()
             week_start = today - timedelta(days=today.weekday())
-            WeeklyTimetable.query.filter_by(
-                user_id=current_user.id, week_start=week_start).delete()
+            future_days = DAYS[today.weekday():]
+            
+            WeeklyTimetable.query.filter(
+                WeeklyTimetable.user_id == current_user.id,
+                WeeklyTimetable.week_start == week_start,
+                WeeklyTimetable.day_name.in_(future_days)
+            ).delete()
             db.session.commit()
 
             records = generate_timetable(gen_items, profile,
                                          free_hours_override=free_hours,
                                          use_topics=use_topics)
             for r in records:
-                r["user_id"] = current_user.id
-                db.session.add(WeeklyTimetable(**r))
+                if r["day_name"] in future_days:
+                    r["user_id"] = current_user.id
+                    db.session.add(WeeklyTimetable(**r))
             db.session.commit()
 
             study_c = sum(1 for r in records if r["slot_type"]=="Study")
@@ -591,12 +601,33 @@ def admin_panel():
     if current_user.role != "admin":
         flash("Access denied.", "danger")
         return redirect(url_for("dashboard"))
-    users    = User.query.all()
+    users    = User.query.filter_by(role="user").all()
     messages = ContactMessage.query.order_by(ContactMessage.created_at.desc()).all()
+
+    # Build per-user info: streak + profile
+    user_data = []
+    for u in users:
+        prof = Profile.query.filter_by(user_id=u.id).first()
+        latest_streak = (Streak.query.filter_by(user_id=u.id)
+                         .order_by(Streak.date.desc()).first())
+        streak_val = latest_streak.current_streak if latest_streak else 0
+        best_streak = (db.session.query(db.func.max(Streak.current_streak))
+                       .filter_by(user_id=u.id).scalar() or 0)
+        user_data.append({
+            "user":        u,
+            "profile":     prof,
+            "streak":      streak_val,
+            "best_streak": best_streak,
+            "subjects":    len(u.subjects),
+            "slots":       len(u.timetables),
+        })
+
     return render_template("admin/panel.html",
-        users=users, messages=messages,
+        user_data=user_data,
+        messages=messages,
+        total_users=len(users),
         total_subjects=Subject.query.count(),
-        total_timetable=WeeklyTimetable.query.count())
+        total_messages=len(messages))
 
 # ── DB Init ───────────────────────────────────────────────────────────────
 

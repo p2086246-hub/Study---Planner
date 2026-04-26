@@ -1,13 +1,10 @@
 """
-ML Engine — Smart Study Planner (Enhanced)
-- Linear Regression for study hour prediction
+ML Engine — Smart Study Planner
+- Linear Regression (manual OLS) for study hour prediction
 - Priority scoring
-- 7-day timetable: break slots, no consecutive same subject, no mock test
-- Subject color palette
-- Badge checker
-- Weak subject detector
-- AI suggestion generator
-- Smart time validator
+- 7-day timetable: break slots, no consecutive same subject
+- Badge checker, weak subject detector, AI suggestion generator
+- Smart time validator  — BUG FIX: revision counted INSIDE free hours
 """
 
 import numpy as np
@@ -16,7 +13,7 @@ import random
 
 # ── Subject colors ────────────────────────────────────────────────────────
 SUBJECT_COLORS = [
-    "#4f46e5","#0891b2","#059669","#d97706",
+    "#6366f1","#0891b2","#059669","#d97706",
     "#dc2626","#7c3aed","#db2777","#65a30d",
     "#ea580c","#0284c7",
 ]
@@ -71,36 +68,26 @@ def compute_priority(difficulty, days_left):
 
 # ── 3. Smart Time Validator ───────────────────────────────────────────────
 def validate_schedule_hours(start_time_str, free_hours):
-    """
-    Ensures the schedule is realistic:
-    - Max free_hours capped at 8
-    - No schedule ending after 23:00
-    - Start time should be between 05:00 and 21:00
-    Returns (validated_hours, warning_message_or_None)
-    """
     try:
         h, m = map(int, start_time_str.split(':'))
     except Exception:
         h, m = 18, 0
 
-    # Cap hours
     free_hours = min(float(free_hours), 8.0)
-
-    # Check end time
-    end_hour = h + int(free_hours)
-    warning  = None
+    end_hour   = h + int(free_hours)
+    warning    = None
 
     if h < 5:
-        warning = "Study start time before 5 AM is not recommended. Adjusted to 06:00."
+        warning = "Study start time before 5 AM adjusted to 06:00."
         h = 6
     if h > 21:
-        warning = "Study start time after 9 PM is too late. Adjusted to 18:00."
+        warning = "Study start time after 9 PM adjusted to 18:00."
         h = 18
     if end_hour > 23:
-        max_hours = 23 - h
+        max_hours  = 23 - h
         free_hours = max(1, max_hours)
-        warning = (f"Schedule would end after midnight. "
-                   f"Hours reduced to {free_hours}h to keep it realistic.")
+        warning    = (f"Schedule would end after midnight. "
+                      f"Hours reduced to {free_hours}h.")
 
     start_time_str = f"{h:02d}:{m:02d}"
     return free_hours, start_time_str, warning
@@ -136,18 +123,18 @@ def _fmt_slot(h, m):
 
 def generate_timetable(subjects, profile, free_hours_override=None, use_topics=False):
     """
-    subjects: list of Subject ORM objects (or Topic-like dicts with .name, .priority_score)
-    use_topics: if True, subjects list contains topic-level items
-    Returns list of dicts for WeeklyTimetable.
-    Slot types: Study, Revision, Break. NO mock test.
-    Break after every 2 study slots. No consecutive same subject.
+    BUG FIX: Revision slot is counted WITHIN free_hours, not added on top.
+
+    If user enters 2h → 1 Study + 1 Revision = 2h total  ✓
+    If user enters 4h → 2 Study + 1 Break + 1 Revision = 4h total  ✓
+    If user enters 5h → 3 Study + 1 Break + 1 Revision = 5h total  ✓
     """
     if not subjects or not profile:
         return []
 
     base_hours = float(free_hours_override or profile.daily_free_hours or 0)
 
-    # Smart boost for close exams (only in subject mode)
+    # Smart boost for close exams (subject mode only)
     if not use_topics:
         min_days = min((s.days_left for s in subjects), default=30)
         if min_days <= 3:   boost = 2
@@ -159,15 +146,29 @@ def generate_timetable(subjects, profile, free_hours_override=None, use_topics=F
     base_hours, start_str, _ = validate_schedule_hours(
         profile.study_start_time or '18:00', base_hours)
 
-    study_hours = int(base_hours)
+    # ── FIXED SLOT CALCULATION ──────────────────────────────────────────
+    # Revision (1 slot) is PART of free_hours — not extra.
+    # Algorithm: fit study + breaks + 1 revision within total_hours.
+    total_hours = max(2, int(base_hours))  # need minimum 2 (1 study + 1 rev)
+
+    # Find max study slots that fit: study + floor(study/2) + 1 <= total
+    study_hours = total_hours - 1          # start by reserving 1 for revision
+    if study_hours < 1:
+        study_hours = 1
+    break_slots = study_hours // 2
+    total_physical = study_hours + break_slots + 1
+
+    # Reduce study if pattern overflows
+    while total_physical > total_hours and study_hours > 1:
+        study_hours   -= 1
+        break_slots    = study_hours // 2
+        total_physical = study_hours + break_slots + 1
+
     if study_hours < 1:
         return []
+    # ────────────────────────────────────────────────────────────────────
 
     start_h, start_m = _parse_time(start_str)
-
-    # Pattern: Study, Study, Break, Study, Study, Break … Revision
-    break_slots    = study_hours // 2
-    total_physical = study_hours + break_slots + 1  # +1 for revision
 
     # Build time labels
     time_labels = []
@@ -177,7 +178,7 @@ def generate_timetable(subjects, profile, free_hours_override=None, use_topics=F
         time_labels.append(f"{_fmt_slot(ch, start_m)} – {_fmt_slot(eh, start_m)}")
         ch = eh
 
-    # Build pattern
+    # Build slot pattern: Study×2, Break, Study×2, Break, … Revision
     pattern, sc, sp, bp = [], 0, 0, 0
     while sp < study_hours:
         pattern.append('Study'); sp += 1; sc += 1
@@ -186,16 +187,19 @@ def generate_timetable(subjects, profile, free_hours_override=None, use_topics=F
     pattern.append('Revision')
     time_labels = time_labels[:len(pattern)]
 
-    # Weighted subject queue
+    # Weighted subject queue across 7 days
     total_study = study_hours * 7
-    priorities  = np.array([max(getattr(s,'priority_score',0.01) or 0.01, 0.01) for s in subjects])
+    priorities  = np.array([max(getattr(s,'priority_score',0.01) or 0.01, 0.01)
+                            for s in subjects])
     weights     = priorities / priorities.sum()
     raw_slots   = np.round(weights * total_study).astype(int)
     raw_slots   = np.maximum(raw_slots, 1)
     diff = total_study - raw_slots.sum()
-    if diff > 0: raw_slots[np.argmax(weights)] += diff
+    if diff > 0:
+        raw_slots[np.argmax(weights)] += diff
     elif diff < 0:
-        for _ in range(-diff): raw_slots[np.argmax(raw_slots-1)] -= 1
+        for _ in range(-diff):
+            raw_slots[np.argmax(raw_slots - 1)] -= 1
 
     subj_queue = []
     for subj, cnt in zip(subjects, raw_slots):
@@ -206,8 +210,8 @@ def generate_timetable(subjects, profile, free_hours_override=None, use_topics=F
     week_start = today - timedelta(days=today.weekday())
     records, q = [], 0
 
-    for d_idx, day in enumerate(DAYS):
-        for s_idx, (tlabel, stype) in enumerate(zip(time_labels, pattern)):
+    for day in DAYS:
+        for tlabel, stype in zip(time_labels, pattern):
             if stype == 'Revision':
                 records.append(dict(week_start=week_start, day_name=day,
                     time_slot=tlabel, subject_name='Revision', slot_type='Revision'))
@@ -223,15 +227,10 @@ def generate_timetable(subjects, profile, free_hours_override=None, use_topics=F
 
 # ── 6. Backlog reschedule ─────────────────────────────────────────────────
 def get_backlog_slots(user_id, db, WeeklyTimetable, DAYS_list):
-    """
-    Returns list of missed (uncompleted Study) slots from past days this week.
-    """
     from datetime import date, timedelta
     today      = date.today()
     week_start = today - timedelta(days=today.weekday())
-    today_name = DAYS_list[today.weekday()]
-
-    past_days  = DAYS_list[:today.weekday()]  # days before today
+    past_days  = DAYS_list[:today.weekday()]
     missed     = []
     for day in past_days:
         slots = WeeklyTimetable.query.filter_by(
@@ -261,13 +260,8 @@ def check_badges(streak, done_slots, total_slots, subjects):
 
 # ── 8. Weak subject detector ──────────────────────────────────────────────
 def detect_weak_subjects(subjects, week_slots):
-    """
-    Returns list of {name, reason, color} for subjects needing attention.
-    Criteria: high difficulty (>=7) OR low completion rate (<40%) OR days_left<14
-    """
     weak = []
-    done_map = {}
-    total_map = {}
+    done_map, total_map = {}, {}
     for sl in week_slots:
         if sl.slot_type == 'Study':
             total_map[sl.subject_name] = total_map.get(sl.subject_name, 0) + 1
@@ -279,14 +273,12 @@ def detect_weak_subjects(subjects, week_slots):
         total = total_map.get(s.name, 0)
         done  = done_map.get(s.name, 0)
         rate  = (done / total * 100) if total > 0 else 0
-
         if s.difficulty >= 7:
             reasons.append(f"High difficulty ({s.difficulty}/10)")
         if total > 0 and rate < 40:
             reasons.append(f"Low completion ({int(rate)}%)")
         if s.days_left and s.days_left < 14:
             reasons.append(f"Exam in {s.days_left} days")
-
         if reasons:
             weak.append({"name": s.name, "reason": ", ".join(reasons),
                          "color": s.color or "#dc2626",
@@ -298,45 +290,31 @@ def detect_weak_subjects(subjects, week_slots):
 # ── 9. AI Suggestion generator ────────────────────────────────────────────
 def generate_ai_suggestions(subjects, week_slots, streak, missed_backlog):
     suggestions = []
-
-    # Exam urgency
     for s in subjects:
         if hasattr(s, 'days_left') and s.days_left and s.days_left <= 7:
-            suggestions.append({
-                "icon": "🚨",
-                "text": f"Your exam for <strong>{s.name}</strong> is in {s.days_left} days — increase study time!",
-                "type": "danger"
-            })
-
-    # Missed sessions
+            suggestions.append({"icon":"🚨",
+                "text":f"Your exam for <strong>{s.name}</strong> is in {s.days_left} days — increase study time!",
+                "type":"danger"})
     missed_counts = {}
     for sl in missed_backlog:
         missed_counts[sl.subject_name] = missed_counts.get(sl.subject_name, 0) + 1
     for sname, cnt in missed_counts.items():
-        suggestions.append({
-            "icon": "⚠️",
-            "text": f"You missed <strong>{cnt}</strong> session(s) of <strong>{sname}</strong> — rescheduled to upcoming days.",
-            "type": "warning"
-        })
-
-    # Streak
+        suggestions.append({"icon":"⚠️",
+            "text":f"You missed <strong>{cnt}</strong> session(s) of <strong>{sname}</strong> — rescheduled.",
+            "type":"warning"})
     if streak == 0:
-        suggestions.append({"icon": "💡",
-            "text": "Start your streak today — complete all slots to begin tracking!",
-            "type": "info"})
+        suggestions.append({"icon":"💡",
+            "text":"Start your streak today — complete all slots to begin tracking!",
+            "type":"info"})
     elif streak >= 5:
-        suggestions.append({"icon": "🔥",
-            "text": f"Amazing! You're on a <strong>{streak}-day streak</strong>. Keep it up!",
-            "type": "success"})
-
-    # Revision topics (subjects with days_left < 14)
+        suggestions.append({"icon":"🔥",
+            "text":f"Amazing! You're on a <strong>{streak}-day streak</strong>. Keep it up!",
+            "type":"success"})
     for s in subjects:
         if hasattr(s, 'days_left') and s.days_left and 7 < s.days_left <= 14:
-            suggestions.append({"icon": "📝",
-                "text": f"Consider revising <strong>{s.name}</strong> tomorrow — exam in {s.days_left} days.",
-                "type": "info"})
-
-    # Cap at 5 suggestions
+            suggestions.append({"icon":"📝",
+                "text":f"Consider revising <strong>{s.name}</strong> tomorrow — exam in {s.days_left} days.",
+                "type":"info"})
     return suggestions[:5]
 
 
